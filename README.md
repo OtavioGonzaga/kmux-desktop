@@ -1,8 +1,13 @@
 # kmux Desktop
 
+![kmux logo](public/kmux-logo.png)
+
 A Linux desktop application for viewing the public-identity catalog from
-[`kmux`](https://github.com/OtavioGonzaga/kmux). This first stage provides the
-Tauri 2 + Svelte 5 foundation and a read-only catalog view.
+[`kmux`](https://github.com/OtavioGonzaga/kmux). The desktop uses Tauri 2,
+React, and Vite with a read-only catalog view, localized in Brazilian
+Portuguese, American English, Spanish, and German. Language defaults to the
+system language (English fallback); appearance follows the system by default,
+with light and dark overrides in Settings.
 
 ## Requirements
 
@@ -30,6 +35,8 @@ interface explains how to create or select one with the `kmux` CLI.
 
 ```sh
 bun run check
+bun run lint
+bun run format:check
 bun run test
 bun run build
 cargo fmt --check --manifest-path src-tauri/Cargo.toml

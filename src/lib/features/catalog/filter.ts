@@ -1,9 +1,6 @@
-import type { IdentityDto } from "$lib/types/catalog";
+import type { IdentityDto } from "../../types/catalog";
 
-export function filterIdentities(
-  identities: IdentityDto[],
-  search: string,
-): IdentityDto[] {
+export function filterIdentities(identities: IdentityDto[], search: string): IdentityDto[] {
   const query = search.trim().toLocaleLowerCase();
   if (!query) return identities;
 

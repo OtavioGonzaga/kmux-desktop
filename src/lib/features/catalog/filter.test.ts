@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filterIdentities } from "./filter";
-import type { IdentityDto } from "$lib/types/catalog";
+import type { IdentityDto } from "../../types/catalog";
 
 const identities: IdentityDto[] = [
   {

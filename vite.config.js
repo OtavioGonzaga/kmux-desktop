@@ -1,12 +1,13 @@
 import { defineConfig } from "vite";
-import { sveltekit } from "@sveltejs/kit/vite";
+import react from "@vitejs/plugin-react";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [sveltekit()],
+  plugins: [react()],
+  resolve: { alias: { $lib: new URL("./src/lib", import.meta.url).pathname } },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
