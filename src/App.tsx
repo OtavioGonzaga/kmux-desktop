@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
@@ -37,6 +37,7 @@ const isAppLanguage = (value: string): value is AppLanguage =>
   supportedLanguages.some((language) => language === value);
 const isThemePreference = (value: string): value is ThemePreference =>
   value === "system" || value === "light" || value === "dark";
+const usesMetaKey = /Mac|iPhone|iPad/.test(navigator.platform);
 
 function getTheme(): ThemePreference {
   const saved = localStorage.getItem("kmux.theme");
@@ -55,6 +56,7 @@ export default function App() {
   const [identityEditor, setIdentityEditor] = useState<string | null>(null);
   const [identityBusy, setIdentityBusy] = useState(false);
   const [identityError, setIdentityError] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [theme, setTheme] = useState<ThemePreference>(getTheme);
   const filtered = useMemo(
     () => filterIdentities(catalog?.identities ?? [], search),
@@ -136,6 +138,16 @@ export default function App() {
     document.documentElement.lang = i18n.language;
     document.title = t("title");
   }, [i18n.language, t]);
+  useEffect(() => {
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+      event.preventDefault();
+      setActiveView("identities");
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    };
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, []);
 
   const changeLanguage = (language: AppLanguage) => {
     localStorage.setItem("kmux.language", language);
@@ -286,6 +298,7 @@ export default function App() {
                     <label className="search-box">
                       <Search size={18} />
                       <input
+                        ref={searchInputRef}
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder={t("searchPlaceholder")}
@@ -300,9 +313,7 @@ export default function App() {
                           <X size={15} />
                         </button>
                       ) : (
-                        <kbd>
-                          <Command size={12} /> K
-                        </kbd>
+                        <kbd>{usesMetaKey ? <Command size={12} /> : "Ctrl"} K</kbd>
                       )}
                     </label>
                     <span className="result-count">
