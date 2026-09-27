@@ -3342,8 +3342,7 @@ dependencies = [
 [[package]]
 name = "ssh-kmux"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0424be8fb64c0662cdc43318eada8e37699d77cc48390344a61fbba890f65af"
+source = "git+https://github.com/OtavioGonzaga/kmux?rev=583b5d77a49da655184a158bc442dd24a055a5d3#583b5d77a49da655184a158bc442dd24a055a5d3"
 dependencies = [
  "base64 0.23.1",
  "clap",
