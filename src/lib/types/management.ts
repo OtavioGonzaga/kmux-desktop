@@ -22,6 +22,11 @@ export interface MutationResponse {
   configPath: string;
 }
 
+export interface ImportResponse extends MutationResponse {
+  importedCount: number;
+  alreadyConfiguredCount: number;
+}
+
 export interface IdentitySnapshotDto {
   snapshotId: string;
   identity: import("./catalog").IdentityDto;

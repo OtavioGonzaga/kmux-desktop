@@ -1,7 +1,8 @@
 use crate::adapters::kmux;
 use crate::app_state::AppState;
 use crate::dto::{
-    AgentListResponse, CatalogErrorDto, CatalogResponse, IdentitySnapshotDto, MutationResponse,
+    AgentListResponse, CatalogErrorDto, CatalogResponse, IdentitySnapshotDto, ImportResponse,
+    MutationResponse,
 };
 use std::collections::BTreeMap;
 use tauri::State;
@@ -62,6 +63,13 @@ pub async fn add_identity(
     })
     .await
     .map_err(|_| internal_error("O cadastro da identidade foi interrompido."))?
+}
+
+#[tauri::command]
+pub async fn import_agent_identities(agent: String) -> Result<ImportResponse, CatalogErrorDto> {
+    tauri::async_runtime::spawn_blocking(move || kmux::import_agent_identities(agent))
+        .await
+        .map_err(|_| internal_error("O cadastro das identidades foi interrompido."))?
 }
 
 #[tauri::command]

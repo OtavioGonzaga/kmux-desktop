@@ -691,9 +691,9 @@ kbd {
   cursor: pointer;
 }
 .button-secondary {
-  border: 1px solid #49414a;
-  color: #e1dce1;
-  background: #342a30;
+  border: 1px solid #465264;
+  color: #dbe5f3;
+  background: #2c3442;
 }
 .button-primary {
   border: 1px solid #658cdb;
@@ -711,7 +711,7 @@ kbd {
 .detail-actions {
   display: flex;
   gap: 8px;
-  padding: 14px 0;
+  padding: 14px 17px;
   border-bottom: 1px solid var(--color-border);
 }
 .empty-state {
@@ -1289,6 +1289,10 @@ kbd {
   line-height: 1.5;
 }
 .agent-identities-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding-top: 11px;
   border-top: 1px solid var(--color-border);
   color: var(--color-muted);

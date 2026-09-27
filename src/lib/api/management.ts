@@ -1,5 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AgentListResponse, IdentitySnapshotDto, MutationResponse } from "../types/management";
+import type {
+  AgentListResponse,
+  IdentitySnapshotDto,
+  ImportResponse,
+  MutationResponse,
+} from "../types/management";
 
 export const getAgents = () => invoke<AgentListResponse>("get_agents");
 
@@ -19,6 +24,9 @@ export const addIdentity = (input: {
   tags: Record<string, string>;
   comment: string | null;
 }) => invoke<MutationResponse>("add_identity", input);
+
+export const importAgentIdentities = (agent: string) =>
+  invoke<ImportResponse>("import_agent_identities", { agent });
 
 export const removeIdentity = (alias: string) =>
   invoke<MutationResponse>("remove_identity", { alias });

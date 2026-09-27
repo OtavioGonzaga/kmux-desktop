@@ -2,23 +2,23 @@ use kmux::agent::AgentName;
 use kmux::catalog::{KeyAlias, KeyEntry};
 use kmux::config::{Config, ConfigError, ConfigSnapshot, ConfigStore};
 use kmux::management::{
-    self, AddAgentRequest, AddKeyRequest, AgentStatus, UpdateAgentRequest, UpdateKeyMetadataRequest,
+    self, AddAgentRequest, AddKeyRequest, AgentStatus, ImportRequest, UpdateAgentRequest,
+    UpdateKeyMetadataRequest,
 };
 use kmux::scope::ScopePath;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
 use crate::dto::{
     AgentDto, AgentIdentityDto, AgentListResponse, CatalogErrorDto, CatalogResponse, IdentityDto,
-    MutationResponse,
+    ImportResponse, MutationResponse,
 };
 
 pub fn load_catalog() -> Result<CatalogResponse, CatalogErrorDto> {
     let config_path = discovered_path()?;
     let config = Config::load(&config_path).map_err(map_config_error)?;
-
     let identities = config
         .catalog()
         .entries()
@@ -42,6 +42,11 @@ pub fn load_catalog() -> Result<CatalogResponse, CatalogErrorDto> {
 pub fn load_agents() -> Result<AgentListResponse, CatalogErrorDto> {
     let config_path = discovered_path()?;
     let config = Config::load(&config_path).map_err(map_config_error)?;
+    let registered_fingerprints = config
+        .catalog()
+        .entries()
+        .map(|entry| entry.fingerprint().to_string())
+        .collect::<BTreeSet<_>>();
     let inspections = management::inspect_agents(&config, Duration::from_millis(800));
     let inspected_at_epoch_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -55,6 +60,9 @@ pub fn load_agents() -> Result<AgentListResponse, CatalogErrorDto> {
                     "available".to_owned(),
                     identities
                         .into_iter()
+                        .filter(|identity| {
+                            !registered_fingerprints.contains(&identity.fingerprint.to_string())
+                        })
                         .map(|identity| AgentIdentityDto {
                             fingerprint: identity.fingerprint.to_string(),
                             comment: identity.comment,
@@ -92,6 +100,42 @@ pub fn load_agents() -> Result<AgentListResponse, CatalogErrorDto> {
     Ok(AgentListResponse {
         config_path: config_path.display().to_string(),
         agents,
+    })
+}
+
+pub fn import_agent_identities(agent: String) -> Result<ImportResponse, CatalogErrorDto> {
+    let path = discovered_path()?;
+    let agent = AgentName::new(agent).map_err(|error| validation_error(error.to_string()))?;
+    let snapshot = ConfigStore::load_versioned(&path).map_err(map_config_error)?;
+    let config = snapshot.document().validate().map_err(map_config_error)?;
+    let definition = config
+        .agents()
+        .get(&agent)
+        .ok_or_else(|| validation_error("O agent selecionado não está cadastrado."))?;
+    let identities = kmux::agent::UnixSocketAgent::new(definition.socket().to_owned())
+        .identities_with_timeout(Some(Duration::from_secs(2)))
+        .map_err(|error| CatalogErrorDto {
+            kind: "agent-unavailable".to_owned(),
+            message: error.to_string(),
+            current: None,
+        })?;
+    let plan = management::plan_import(
+        snapshot,
+        ImportRequest {
+            agent,
+            identities,
+            scopes: Vec::new(),
+            tags: BTreeMap::new(),
+        },
+    )
+    .map_err(map_config_error)?;
+    let imported_count = plan.additions().len();
+    let already_configured_count = plan.already_configured();
+    management::apply_import(&plan).map_err(map_config_error)?;
+    Ok(ImportResponse {
+        config_path: path.display().to_string(),
+        imported_count,
+        already_configured_count,
     })
 }
 

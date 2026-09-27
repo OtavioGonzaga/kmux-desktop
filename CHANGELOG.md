@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   details.
 - Add SSH agent inspection and administration, plus identity registration,
   metadata editing with revision conflicts, and removal.
+- Add bulk registration for the public identities an agent advertises but that
+  are not yet in the catalog.
 - Add the MIT license and release/versioning guidance.
 
 ### Changed
@@ -30,5 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove unused legacy static assets from the previous frontend scaffold.
 - Pin `ssh-kmux` to the current kmux Git revision to use its transactional
   management and versioned configuration APIs.
+- Use neutral dark-theme styles for standard buttons and align identity-detail
+  actions with the other detail content.
 
 - Document Bun setup, development commands, and project checks.

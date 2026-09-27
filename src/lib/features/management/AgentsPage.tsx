@@ -5,6 +5,7 @@ import {
   addAgent,
   addIdentity,
   getAgents,
+  importAgentIdentities,
   removeAgent,
   updateAgentSocket,
 } from "../../api/management";
@@ -149,6 +150,20 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
     }
   }
 
+  async function importAllIdentities(agent: AgentDto) {
+    setBusy(true);
+    setError("");
+    try {
+      await importAgentIdentities(agent.name);
+      await refresh();
+      onCatalogChanged();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="management-page" aria-labelledby="agents-heading">
       <div className="management-heading">
@@ -243,7 +258,17 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
               </div>
               {agent.error && <p className="agent-error-text">{agent.error}</p>}
               <div className="agent-identities-heading">
-                <strong>{t("announcedIdentities", { count: agent.identityCount ?? 0 })}</strong>
+                <strong>{t("availableIdentities", { count: agent.identityCount ?? 0 })}</strong>
+                {agent.identities.length > 0 && (
+                  <button
+                    className="button button-primary button-small"
+                    onClick={() => void importAllIdentities(agent)}
+                    disabled={busy}
+                  >
+                    <Plus size={13} />
+                    {t("registerAllIdentities", { count: agent.identities.length })}
+                  </button>
+                )}
               </div>
               {agent.identities.length > 0 ? (
                 <div className="announced-identities">
@@ -274,7 +299,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
                   ))}
                 </div>
               ) : agent.status === "available" ? (
-                <p className="field-empty">{t("noAnnouncedIdentities")}</p>
+                <p className="field-empty">{t("noAvailableIdentities")}</p>
               ) : null}
             </article>
           ))}

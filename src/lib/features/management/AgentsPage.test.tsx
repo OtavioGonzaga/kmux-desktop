@@ -11,6 +11,7 @@ const managementApi = vi.hoisted(() => ({
   updateAgentSocket: vi.fn(),
   removeAgent: vi.fn(),
   addIdentity: vi.fn(),
+  importAgentIdentities: vi.fn(),
   removeIdentity: vi.fn(),
   getIdentitySnapshot: vi.fn(),
   updateIdentityMetadata: vi.fn(),
@@ -40,6 +41,11 @@ describe("AgentsPage", () => {
     vi.clearAllMocks();
     managementApi.getAgents.mockResolvedValue(response);
     managementApi.addAgent.mockResolvedValue({ configPath: response.configPath });
+    managementApi.importAgentIdentities.mockResolvedValue({
+      configPath: response.configPath,
+      importedCount: 1,
+      alreadyConfiguredCount: 0,
+    });
     managementApi.updateAgentSocket.mockResolvedValue({ configPath: response.configPath });
     managementApi.removeAgent.mockResolvedValue({ configPath: response.configPath });
   });
@@ -67,6 +73,18 @@ describe("AgentsPage", () => {
     await waitFor(() =>
       expect(managementApi.addAgent).toHaveBeenCalledWith("backup", "/run/user/1000/backup.sock"),
     );
+    expect(onCatalogChanged).toHaveBeenCalledOnce();
+    expect(managementApi.getAgents).toHaveBeenCalledTimes(2);
+  });
+
+  it("registers every identity currently available from an agent", async () => {
+    const onCatalogChanged = vi.fn();
+    render(<AgentsPage onCatalogChanged={onCatalogChanged} />);
+    await screen.findByText("work");
+
+    fireEvent.click(screen.getByRole("button", { name: "Register all (1)" }));
+
+    await waitFor(() => expect(managementApi.importAgentIdentities).toHaveBeenCalledWith("work"));
     expect(onCatalogChanged).toHaveBeenCalledOnce();
     expect(managementApi.getAgents).toHaveBeenCalledTimes(2);
   });

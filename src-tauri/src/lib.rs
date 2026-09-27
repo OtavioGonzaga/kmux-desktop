@@ -14,6 +14,7 @@ pub fn run() {
             commands::update_agent_socket,
             commands::remove_agent,
             commands::add_identity,
+            commands::import_agent_identities,
             commands::remove_identity,
             commands::get_identity_snapshot,
             commands::update_identity_metadata,

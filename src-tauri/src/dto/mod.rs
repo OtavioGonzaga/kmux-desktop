@@ -35,6 +35,14 @@ pub struct MutationResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ImportResponse {
+    pub config_path: String,
+    pub imported_count: usize,
+    pub already_configured_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IdentitySnapshotDto {
     pub snapshot_id: String,
     pub identity: IdentityDto,
