@@ -101,7 +101,7 @@
   "managementError_generic": "Não foi possível concluir a operação.",
   "managementError_validation": "Confira os valores informados e tente novamente.",
   "managementError_conflict": "A configuração mudou. Revise a versão atual e tente novamente.",
-  "managementError_agent-in-use": "Este agent ainda é usado pelas identities cadastradas: {{identities}}.",
+  "managementError_agent-in-use": "Este agent ainda é usado pelas identidades cadastradas: {{identities}}.",
   "managementError_not-found": "O item selecionado não existe mais.",
   "managementError_config-not-found": "Nenhum arquivo de configuração do kmux foi encontrado.",
   "managementError_ambiguous-config": "Mais de um arquivo de configuração foi encontrado. Defina KMUX_CONFIG para escolher um.",
