@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add a React + Vite (SWC) frontend for the Tauri 2 desktop application.
+- Add a React + Vite frontend for the Tauri 2 desktop application.
 - Add localized interface translations for pt-BR, en-US, es, and de, with
   system-language detection and an English fallback.
 - Add system, light, and dark appearance preferences and a settings panel.
@@ -19,13 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify the desktop header and sidebar by removing unused status and profile controls.
 - Align identity agents consistently on the right side of catalog cards.
 - Remove unused catalog disclaimer and help control from the interface.
-- Add a read-only view of the kmux identity catalog, including search and
-  identity details.
+- Add a searchable view of the kmux identity catalog, including identity
+  details.
+- Add SSH agent inspection and administration, plus identity registration,
+  metadata editing with revision conflicts, and removal.
+- Add bulk registration for the public identities an agent advertises but that
+  are not yet in the catalog.
+- Add a reviewable bulk-import preview with configurable scopes before applying
+  the transactional import plan.
+- Show the exact scopes in the bulk-import review and preserve structured
+  identity references in agent-in-use errors for localized display.
 - Add the MIT license and release/versioning guidance.
 
 ### Changed
 
 - Remove unused legacy static assets from the previous frontend scaffold.
+- Pin `ssh-kmux` to the current kmux Git revision to use its transactional
+  management and versioned configuration APIs.
+- Use neutral dark-theme styles for standard buttons and align identity-detail
+  actions with the other detail content.
+- Separate agent creation and editing modes, localize management errors, retain
+  total and available identity counts, and refresh the active view from the header.
 
-- Load `ssh-kmux` version `0.4.0` from crates.io rather than from Git.
 - Document Bun setup, development commands, and project checks.

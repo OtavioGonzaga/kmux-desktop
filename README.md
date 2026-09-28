@@ -2,10 +2,10 @@
 
 ![kmux logo](public/kmux-logo.png)
 
-A Linux desktop application for viewing the public-identity catalog from
+A Linux desktop application for viewing and managing public identities from
 [`kmux`](https://github.com/OtavioGonzaga/kmux). The desktop uses Tauri 2,
-React, and Vite with a read-only catalog view, localized in Brazilian
-Portuguese, American English, Spanish, and German. Language defaults to the
+React, and Vite, localized in Brazilian Portuguese, American English, Spanish,
+and German. Language defaults to the
 system language (English fallback); appearance follows the system by default,
 with light and dark overrides in Settings.
 
@@ -49,6 +49,7 @@ Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md) using Keep a
 Changelog. Application versions follow Semantic Versioning and are kept in sync
 across the JavaScript package, Rust crate, and Tauri bundle configuration.
 
-The Rust crate uses `ssh-kmux` `0.4.0` from crates.io, pinned to an exact version
-in the manifest and recorded in `src-tauri/Cargo.lock`. The frontend receives
-catalog DTOs only. Private keys and raw key blobs are never sent to the frontend.
+The Rust backend uses the public `ssh-kmux` API pinned to a specific Git commit
+in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`. The frontend receives
+public catalog and agent-inspection DTOs only. Private keys and raw key blobs
+are never sent to the frontend.
