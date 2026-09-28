@@ -32,12 +32,22 @@ function errorCode(error: unknown): string {
 
 function localizedError(
   error: unknown,
-  t: (key: string, options?: { defaultValue?: string }) => string,
+  t: (key: string, options?: { defaultValue?: string; identities?: string }) => string,
 ) {
   const code = errorCode(error);
+  const references =
+    typeof error === "object" &&
+    error !== null &&
+    "references" in error &&
+    Array.isArray(error.references)
+      ? error.references.join(", ")
+      : "";
   return code === "invalid-tag-format"
     ? t("invalidTagFormat")
-    : t(`managementError_${code}`, { defaultValue: t("managementError_generic") });
+    : t(`managementError_${code}`, {
+        defaultValue: t("managementError_generic"),
+        identities: references,
+      });
 }
 
 function parseTags(value: string): Record<string, string> {
@@ -602,6 +612,13 @@ export default function AgentsPage({
                 <>
                   <p className="form-context">
                     {t("importPreviewCount", { count: importPreview.additions.length })}
+                  </p>
+                  <p className="form-context">
+                    {t("importPreviewScopes", {
+                      scopes: importPreview.scopes.length
+                        ? importPreview.scopes.join(", ")
+                        : t("noScopes"),
+                    })}
                   </p>
                   {importPreview.alreadyConfiguredCount > 0 && (
                     <p className="form-context">

@@ -48,6 +48,7 @@ pub struct ImportPreviewDto {
     pub plan_id: String,
     pub config_path: String,
     pub additions: Vec<ImportIdentityDto>,
+    pub scopes: Vec<String>,
     pub already_configured_count: usize,
 }
 
@@ -91,4 +92,6 @@ pub struct CatalogErrorDto {
     pub kind: String,
     pub message: String,
     pub current: Option<Box<IdentitySnapshotDto>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub references: Option<Vec<String>>,
 }

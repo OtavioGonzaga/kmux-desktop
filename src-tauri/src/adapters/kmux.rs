@@ -126,11 +126,13 @@ pub fn prepare_agent_import(
             kind: "agent-unavailable".to_owned(),
             message: error.to_string(),
             current: None,
+            references: None,
         })?;
     let scopes = scopes
         .iter()
         .map(|scope| ScopePath::from_str(scope).map_err(|_| validation_error("Invalid scope.")))
         .collect::<Result<Vec<_>, _>>()?;
+    let preview_scopes = scopes.iter().map(ToString::to_string).collect();
     let plan = management::plan_import(
         snapshot,
         ImportRequest {
@@ -153,6 +155,7 @@ pub fn prepare_agent_import(
                 comment: entry.comment().map(str::to_owned),
             })
             .collect(),
+        scopes: preview_scopes,
         already_configured_count: plan.already_configured(),
     };
     Ok((plan, preview))
@@ -245,6 +248,7 @@ pub fn add_identity(
             kind: "agent-unavailable".to_owned(),
             message: error.to_string(),
             current: None,
+            references: None,
         })?;
     let identity = identities
         .into_iter()
@@ -281,6 +285,7 @@ pub fn load_identity_snapshot(
             kind: "not-found".to_owned(),
             message: "A identidade selecionada não existe mais.".to_owned(),
             current: None,
+            references: None,
         })?;
     let identity = IdentityDto {
         alias: entry.alias().to_string(),
@@ -348,19 +353,24 @@ fn validation_error(message: impl Into<String>) -> CatalogErrorDto {
         kind: "validation".to_owned(),
         message: message.into(),
         current: None,
+        references: None,
     }
 }
 
 fn map_config_error(error: ConfigError) -> CatalogErrorDto {
+    let references = match &error {
+        ConfigError::AgentInUse(_, aliases) => Some(aliases.clone()),
+        _ => None,
+    };
     let (kind, message) = match error {
         ConfigError::Conflict(_) => (
             "conflict",
             "A configuração mudou desde que os dados foram carregados. Atualize e tente novamente."
                 .to_owned(),
         ),
-        ConfigError::AgentInUse(agent, aliases) => (
+        ConfigError::AgentInUse(_agent, _aliases) => (
             "agent-in-use",
-            format!("O agent {agent} ainda é usado por: {}.", aliases.join(", ")),
+            "The agent is still referenced by configured identities.".to_owned(),
         ),
         ConfigError::UnknownAgent(agent) => ("not-found", format!("O agent {agent} não existe.")),
         ConfigError::UnknownKey(alias) => ("not-found", format!("A identidade {alias} não existe.")),
@@ -401,5 +411,6 @@ fn map_config_error(error: ConfigError) -> CatalogErrorDto {
         kind: kind.to_owned(),
         message,
         current: None,
+        references,
     }
 }

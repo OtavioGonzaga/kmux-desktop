@@ -32,6 +32,7 @@ export interface ImportPreviewDto {
   planId: string;
   configPath: string;
   additions: Array<{ alias: string; fingerprint: string; comment: string | null }>;
+  scopes: string[];
   alreadyConfiguredCount: number;
 }
 
@@ -44,4 +45,5 @@ export type ManagementError = {
   kind: string;
   message: string;
   current?: IdentitySnapshotDto | null;
+  references?: string[];
 };

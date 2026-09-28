@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are not yet in the catalog.
 - Add a reviewable bulk-import preview with configurable scopes before applying
   the transactional import plan.
+- Show the exact scopes in the bulk-import review and preserve structured
+  identity references in agent-in-use errors for localized display.
 - Add the MIT license and release/versioning guidance.
 
 ### Changed

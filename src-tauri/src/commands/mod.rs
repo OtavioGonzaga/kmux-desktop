@@ -15,6 +15,7 @@ pub async fn get_catalog() -> Result<CatalogResponse, CatalogErrorDto> {
             kind: "internal-error".to_owned(),
             message: "O carregamento do catálogo foi interrompido.".to_owned(),
             current: None,
+            references: None,
         })?
 }
 
@@ -91,6 +92,7 @@ pub async fn apply_agent_import(
                 kind: "snapshot-expired".to_owned(),
                 message: "The import preview expired.".to_owned(),
                 current: None,
+                references: None,
             })?;
     tauri::async_runtime::spawn_blocking(move || kmux::apply_agent_import(&plan, config_path))
         .await
@@ -135,6 +137,7 @@ pub async fn update_identity_metadata(
             kind: "snapshot-expired".to_owned(),
             message: "A sessão de edição expirou. Abra a identidade novamente.".to_owned(),
             current: None,
+            references: None,
         })?;
     let alias_for_refresh = alias.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
@@ -170,5 +173,6 @@ fn internal_error(message: &str) -> CatalogErrorDto {
         kind: "internal-error".to_owned(),
         message: message.to_owned(),
         current: None,
+        references: None,
     }
 }

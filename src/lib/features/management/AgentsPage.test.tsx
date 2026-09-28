@@ -48,6 +48,7 @@ describe("AgentsPage", () => {
       planId: "plan-1",
       configPath: response.configPath,
       additions: [{ alias: "work-key", fingerprint: "SHA256:abc", comment: "Work key" }],
+      scopes: ["work/prod"],
       alreadyConfiguredCount: 0,
     });
     managementApi.applyAgentImport.mockResolvedValue({
@@ -119,6 +120,7 @@ describe("AgentsPage", () => {
       expect(managementApi.prepareAgentImport).toHaveBeenCalledWith("work", ["work/prod"]),
     );
     expect(await screen.findByText("work-key")).toBeTruthy();
+    expect(screen.getByText("Scopes to assign: work/prod")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add identities" }));
     await waitFor(() => expect(managementApi.applyAgentImport).toHaveBeenCalledWith("plan-1"));
     expect(onCatalogChanged).toHaveBeenCalledOnce();
