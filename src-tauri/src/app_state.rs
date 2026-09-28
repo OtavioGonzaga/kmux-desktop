@@ -1,20 +1,29 @@
 use kmux::config::ConfigSnapshot;
+use kmux::management::ImportPlan;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const MAX_SNAPSHOTS: usize = 64;
+const MAX_IMPORT_PLANS: usize = 64;
 static SNAPSHOT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Default)]
 pub struct AppState {
     snapshots: Mutex<SnapshotStore>,
+    imports: Mutex<ImportPlanStore>,
 }
 
 #[derive(Default)]
 struct SnapshotStore {
     order: VecDeque<String>,
     snapshots: HashMap<String, ConfigSnapshot>,
+}
+
+#[derive(Default)]
+struct ImportPlanStore {
+    order: VecDeque<String>,
+    plans: HashMap<String, (ImportPlan, String)>,
 }
 
 impl AppState {
@@ -44,6 +53,26 @@ impl AppState {
         let mut store = self.snapshots.lock().expect("snapshot mutex poisoned");
         store.snapshots.remove(id);
         store.order.retain(|entry| entry != id);
+    }
+
+    pub fn insert_import_plan(&self, plan: ImportPlan, config_path: String) -> String {
+        let id = uuid();
+        let mut store = self.imports.lock().expect("import plan mutex poisoned");
+        while store.order.len() >= MAX_IMPORT_PLANS {
+            if let Some(expired) = store.order.pop_front() {
+                store.plans.remove(&expired);
+            }
+        }
+        store.order.push_back(id.clone());
+        store.plans.insert(id.clone(), (plan, config_path));
+        id
+    }
+
+    pub fn take_import_plan(&self, id: &str) -> Option<(ImportPlan, String)> {
+        let mut store = self.imports.lock().expect("import plan mutex poisoned");
+        let plan = store.plans.remove(id)?;
+        store.order.retain(|entry| entry != id);
+        Some(plan)
     }
 }
 

@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use crate::dto::{
     AgentDto, AgentIdentityDto, AgentListResponse, CatalogErrorDto, CatalogResponse, IdentityDto,
-    ImportResponse, MutationResponse,
+    ImportIdentityDto, ImportPreviewDto, ImportResponse, MutationResponse,
 };
 
 pub fn load_catalog() -> Result<CatalogResponse, CatalogErrorDto> {
@@ -55,9 +55,10 @@ pub fn load_agents() -> Result<AgentListResponse, CatalogErrorDto> {
     let agents = inspections
         .into_iter()
         .map(|inspection| {
-            let (status, identities, error) = match inspection.status {
+            let (status, announced_count, identities, error) = match inspection.status {
                 AgentStatus::Available(identities) => (
                     "available".to_owned(),
+                    Some(identities.len()),
                     identities
                         .into_iter()
                         .filter(|identity| {
@@ -72,25 +73,29 @@ pub fn load_agents() -> Result<AgentListResponse, CatalogErrorDto> {
                 ),
                 AgentStatus::TimedOut => (
                     "timed-out".to_owned(),
+                    None,
                     Vec::new(),
-                    Some("A inspeção excedeu o limite de tempo.".to_owned()),
+                    Some("timed-out".to_owned()),
                 ),
-                AgentStatus::Unavailable(error) => (
+                AgentStatus::Unavailable(_) => (
                     "unavailable".to_owned(),
+                    None,
                     Vec::new(),
-                    Some(error.to_string()),
+                    Some("unavailable".to_owned()),
                 ),
-                AgentStatus::ProtocolError(error) => (
+                AgentStatus::ProtocolError(_) => (
                     "protocol-error".to_owned(),
+                    None,
                     Vec::new(),
-                    Some(error.to_string()),
+                    Some("protocol-error".to_owned()),
                 ),
             };
             AgentDto {
                 name: inspection.name.to_string(),
                 socket: inspection.socket.display().to_string(),
                 status,
-                identity_count: (error.is_none()).then_some(identities.len()),
+                announced_count,
+                available_count: error.is_none().then_some(identities.len()),
                 identities,
                 error,
                 inspected_at_epoch_ms,
@@ -103,7 +108,10 @@ pub fn load_agents() -> Result<AgentListResponse, CatalogErrorDto> {
     })
 }
 
-pub fn import_agent_identities(agent: String) -> Result<ImportResponse, CatalogErrorDto> {
+pub fn prepare_agent_import(
+    agent: String,
+    scopes: Vec<String>,
+) -> Result<(management::ImportPlan, ImportPreviewDto), CatalogErrorDto> {
     let path = discovered_path()?;
     let agent = AgentName::new(agent).map_err(|error| validation_error(error.to_string()))?;
     let snapshot = ConfigStore::load_versioned(&path).map_err(map_config_error)?;
@@ -119,21 +127,46 @@ pub fn import_agent_identities(agent: String) -> Result<ImportResponse, CatalogE
             message: error.to_string(),
             current: None,
         })?;
+    let scopes = scopes
+        .iter()
+        .map(|scope| ScopePath::from_str(scope).map_err(|_| validation_error("Invalid scope.")))
+        .collect::<Result<Vec<_>, _>>()?;
     let plan = management::plan_import(
         snapshot,
         ImportRequest {
             agent,
             identities,
-            scopes: Vec::new(),
+            scopes,
             tags: BTreeMap::new(),
         },
     )
     .map_err(map_config_error)?;
+    let preview = ImportPreviewDto {
+        plan_id: String::new(),
+        config_path: path.display().to_string(),
+        additions: plan
+            .additions()
+            .iter()
+            .map(|entry| ImportIdentityDto {
+                alias: entry.alias().to_string(),
+                fingerprint: entry.fingerprint().to_string(),
+                comment: entry.comment().map(str::to_owned),
+            })
+            .collect(),
+        already_configured_count: plan.already_configured(),
+    };
+    Ok((plan, preview))
+}
+
+pub fn apply_agent_import(
+    plan: &management::ImportPlan,
+    config_path: String,
+) -> Result<ImportResponse, CatalogErrorDto> {
     let imported_count = plan.additions().len();
     let already_configured_count = plan.already_configured();
-    management::apply_import(&plan).map_err(map_config_error)?;
+    management::apply_import(plan).map_err(map_config_error)?;
     Ok(ImportResponse {
-        config_path: path.display().to_string(),
+        config_path,
         imported_count,
         already_configured_count,
     })
@@ -345,6 +378,11 @@ fn map_config_error(error: ConfigError) -> CatalogErrorDto {
             "config-unavailable",
             "Não foi possível acessar ou localizar a configuração do kmux.".to_owned(),
         ),
+        ConfigError::Write { source, .. }
+            if source.kind() == std::io::ErrorKind::PermissionDenied =>
+        {
+            ("permission-denied", "Permission denied.".to_owned())
+        }
         ConfigError::Parse(_) => (
             "invalid-config",
             "A configuração do kmux tem formato inválido ou dados inconsistentes.".to_owned(),

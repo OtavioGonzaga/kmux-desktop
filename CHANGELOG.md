@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metadata editing with revision conflicts, and removal.
 - Add bulk registration for the public identities an agent advertises but that
   are not yet in the catalog.
+- Add a reviewable bulk-import preview with configurable scopes before applying
+  the transactional import plan.
 - Add the MIT license and release/versioning guidance.
 
 ### Changed
@@ -34,5 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   management and versioned configuration APIs.
 - Use neutral dark-theme styles for standard buttons and align identity-detail
   actions with the other detail content.
+- Separate agent creation and editing modes, localize management errors, retain
+  total and available identity counts, and refresh the active view from the header.
 
 - Document Bun setup, development commands, and project checks.

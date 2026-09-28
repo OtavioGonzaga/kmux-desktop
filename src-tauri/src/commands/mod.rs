@@ -1,8 +1,8 @@
 use crate::adapters::kmux;
 use crate::app_state::AppState;
 use crate::dto::{
-    AgentListResponse, CatalogErrorDto, CatalogResponse, IdentitySnapshotDto, ImportResponse,
-    MutationResponse,
+    AgentListResponse, CatalogErrorDto, CatalogResponse, IdentitySnapshotDto, ImportPreviewDto,
+    ImportResponse, MutationResponse,
 };
 use std::collections::BTreeMap;
 use tauri::State;
@@ -66,10 +66,35 @@ pub async fn add_identity(
 }
 
 #[tauri::command]
-pub async fn import_agent_identities(agent: String) -> Result<ImportResponse, CatalogErrorDto> {
-    tauri::async_runtime::spawn_blocking(move || kmux::import_agent_identities(agent))
+pub async fn prepare_agent_import(
+    agent: String,
+    scopes: Vec<String>,
+    app_state: State<'_, AppState>,
+) -> Result<ImportPreviewDto, CatalogErrorDto> {
+    let (plan, mut preview) =
+        tauri::async_runtime::spawn_blocking(move || kmux::prepare_agent_import(agent, scopes))
+            .await
+            .map_err(|_| internal_error("Import preparation was interrupted."))??;
+    preview.plan_id = app_state.insert_import_plan(plan, preview.config_path.clone());
+    Ok(preview)
+}
+
+#[tauri::command]
+pub async fn apply_agent_import(
+    plan_id: String,
+    app_state: State<'_, AppState>,
+) -> Result<ImportResponse, CatalogErrorDto> {
+    let (plan, config_path) =
+        app_state
+            .take_import_plan(&plan_id)
+            .ok_or_else(|| CatalogErrorDto {
+                kind: "snapshot-expired".to_owned(),
+                message: "The import preview expired.".to_owned(),
+                current: None,
+            })?;
+    tauri::async_runtime::spawn_blocking(move || kmux::apply_agent_import(&plan, config_path))
         .await
-        .map_err(|_| internal_error("O cadastro das identidades foi interrompido."))?
+        .map_err(|_| internal_error("Import application was interrupted."))?
 }
 
 #[tauri::command]

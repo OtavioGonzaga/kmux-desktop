@@ -7,7 +7,8 @@ pub struct AgentDto {
     pub name: String,
     pub socket: String,
     pub status: String,
-    pub identity_count: Option<usize>,
+    pub announced_count: Option<usize>,
+    pub available_count: Option<usize>,
     pub identities: Vec<AgentIdentityDto>,
     pub error: Option<String>,
     pub inspected_at_epoch_ms: u64,
@@ -39,6 +40,23 @@ pub struct ImportResponse {
     pub config_path: String,
     pub imported_count: usize,
     pub already_configured_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportPreviewDto {
+    pub plan_id: String,
+    pub config_path: String,
+    pub additions: Vec<ImportIdentityDto>,
+    pub already_configured_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportIdentityDto {
+    pub alias: String,
+    pub fingerprint: String,
+    pub comment: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

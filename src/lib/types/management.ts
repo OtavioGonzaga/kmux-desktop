@@ -7,7 +7,8 @@ export interface AgentDto {
   name: string;
   socket: string;
   status: "available" | "unavailable" | "timed-out" | "protocol-error";
-  identityCount: number | null;
+  announcedCount: number | null;
+  availableCount: number | null;
   identities: AgentIdentityDto[];
   error: string | null;
   inspectedAtEpochMs: number;
@@ -24,6 +25,13 @@ export interface MutationResponse {
 
 export interface ImportResponse extends MutationResponse {
   importedCount: number;
+  alreadyConfiguredCount: number;
+}
+
+export interface ImportPreviewDto {
+  planId: string;
+  configPath: string;
+  additions: Array<{ alias: string; fingerprint: string; comment: string | null }>;
   alreadyConfiguredCount: number;
 }
 

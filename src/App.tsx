@@ -53,6 +53,7 @@ export default function App() {
   const [selectedAlias, setSelectedAlias] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("identities");
+  const [agentsRefreshKey, setAgentsRefreshKey] = useState(0);
   const [identityEditor, setIdentityEditor] = useState<string | null>(null);
   const [identityBusy, setIdentityBusy] = useState(false);
   const [identityError, setIdentityError] = useState("");
@@ -175,10 +176,12 @@ export default function App() {
   }
 
   function errorMessage(cause: unknown) {
-    if (typeof cause === "object" && cause !== null && "message" in cause) {
-      return String(cause.message);
+    if (typeof cause === "object" && cause !== null && "kind" in cause) {
+      return t(`managementError_${String(cause.kind)}`, {
+        defaultValue: t("managementError_generic"),
+      });
     }
-    return String(cause);
+    return t("managementError_generic");
   }
 
   return (
@@ -241,15 +244,22 @@ export default function App() {
             <button
               className="icon-button"
               aria-label={t("refresh")}
-              onClick={() => void refreshCatalog()}
-              disabled={loading}
+              onClick={() =>
+                activeView === "identities"
+                  ? void refreshCatalog()
+                  : setAgentsRefreshKey((key) => key + 1)
+              }
+              disabled={activeView === "identities" && loading}
             >
               <RefreshCw size={17} className={loading ? "spin" : ""} />
             </button>
           </div>
         </header>
         {activeView === "agents" ? (
-          <AgentsPage onCatalogChanged={() => void refreshCatalog()} />
+          <AgentsPage
+            refreshKey={agentsRefreshKey}
+            onCatalogChanged={() => void refreshCatalog()}
+          />
         ) : (
           <section className="content-wrap">
             <div className="page-heading">

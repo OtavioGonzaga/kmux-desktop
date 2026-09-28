@@ -5,13 +5,14 @@ import {
   addAgent,
   addIdentity,
   getAgents,
-  importAgentIdentities,
+  applyAgentImport,
+  prepareAgentImport,
   removeAgent,
   updateAgentSocket,
 } from "../../api/management";
-import type { AgentDto } from "../../types/management";
+import type { AgentDto, ImportPreviewDto } from "../../types/management";
 
-type AgentForm = { name: string; socket: string };
+type AgentForm = { mode: "create" | "edit"; name: string; socket: string };
 type IdentityForm = {
   agent: AgentDto;
   fingerprint: string;
@@ -21,11 +22,22 @@ type IdentityForm = {
   comment: string;
 };
 
-function errorMessage(error: unknown) {
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String(error.message);
+function errorCode(error: unknown): string {
+  if (error instanceof Error && error.message === "invalid-tag-format") return "invalid-tag-format";
+  if (typeof error === "object" && error !== null && "kind" in error) {
+    return String(error.kind);
   }
-  return String(error);
+  return "internal-error";
+}
+
+function localizedError(
+  error: unknown,
+  t: (key: string, options?: { defaultValue?: string }) => string,
+) {
+  const code = errorCode(error);
+  return code === "invalid-tag-format"
+    ? t("invalidTagFormat")
+    : t(`managementError_${code}`, { defaultValue: t("managementError_generic") });
 }
 
 function parseTags(value: string): Record<string, string> {
@@ -37,14 +49,20 @@ function parseTags(value: string): Record<string, string> {
       .map((line) => {
         const separator = line.indexOf("=");
         if (separator < 1 || separator === line.length - 1) {
-          throw new Error("Use uma linha por tag no formato chave=valor.");
+          throw new Error("invalid-tag-format");
         }
         return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
       }),
   );
 }
 
-export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () => void }) {
+export default function AgentsPage({
+  onCatalogChanged,
+  refreshKey,
+}: {
+  onCatalogChanged: () => void;
+  refreshKey: number;
+}) {
   const { t } = useTranslation();
   const [agents, setAgents] = useState<AgentDto[]>([]);
   const [configPath, setConfigPath] = useState("");
@@ -53,6 +71,8 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
   const [error, setError] = useState("");
   const [agentForm, setAgentForm] = useState<AgentForm | null>(null);
   const [identityForm, setIdentityForm] = useState<IdentityForm | null>(null);
+  const [importForm, setImportForm] = useState<{ agent: AgentDto; scopes: string } | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreviewDto | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -62,7 +82,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
       setAgents(result.agents);
       setConfigPath(result.configPath);
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(localizedError(cause, t));
     } finally {
       setLoading(false);
     }
@@ -70,14 +90,14 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
 
   useEffect(() => {
     let active = true;
-    getAgents()
+    getAgents(refreshKey)
       .then((result) => {
         if (!active) return;
         setAgents(result.agents);
         setConfigPath(result.configPath);
       })
       .catch((cause: unknown) => {
-        if (active) setError(errorMessage(cause));
+        if (active) setError(localizedError(cause, t));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -85,7 +105,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshKey, t]);
 
   async function saveAgent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,7 +113,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
     setBusy(true);
     setError("");
     try {
-      if (agentForm.name.trim() && agents.some((agent) => agent.name === agentForm.name)) {
+      if (agentForm.mode === "edit") {
         await updateAgentSocket(agentForm.name, agentForm.socket.trim());
       } else {
         await addAgent(agentForm.name.trim(), agentForm.socket.trim());
@@ -102,7 +122,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
       await refresh();
       onCatalogChanged();
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(localizedError(cause, t));
     } finally {
       setBusy(false);
     }
@@ -117,7 +137,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
       await refresh();
       onCatalogChanged();
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(localizedError(cause, t));
     } finally {
       setBusy(false);
     }
@@ -144,21 +164,49 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
       await refresh();
       onCatalogChanged();
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(localizedError(cause, t));
     } finally {
       setBusy(false);
     }
   }
 
-  async function importAllIdentities(agent: AgentDto) {
+  async function prepareImport() {
+    if (!importForm) return;
     setBusy(true);
     setError("");
     try {
-      await importAgentIdentities(agent.name);
+      const preview = await prepareAgentImport(
+        importForm.agent.name,
+        importForm.scopes
+          .split(",")
+          .map((scope) => scope.trim())
+          .filter(Boolean),
+      );
+      setImportPreview(preview);
+    } catch (cause) {
+      setError(localizedError(cause, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmImport() {
+    if (!importPreview) return;
+    setBusy(true);
+    setError("");
+    try {
+      await applyAgentImport(importPreview.planId);
+      setImportForm(null);
+      setImportPreview(null);
       await refresh();
       onCatalogChanged();
     } catch (cause) {
-      setError(errorMessage(cause));
+      setError(
+        t(`managementError_${errorCode(cause)}`, { defaultValue: t("managementError_generic") }),
+      );
+      if (errorCode(cause) === "conflict" || errorCode(cause) === "snapshot-expired") {
+        setImportPreview(null);
+      }
     } finally {
       setBusy(false);
     }
@@ -183,7 +231,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
           </button>
           <button
             className="button button-primary"
-            onClick={() => setAgentForm({ name: "", socket: "" })}
+            onClick={() => setAgentForm({ mode: "create", name: "", socket: "" })}
           >
             <Plus size={15} />
             {t("addAgent")}
@@ -231,7 +279,9 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
                     className="icon-button"
                     aria-label={t("editSocket")}
                     title={t("editSocket")}
-                    onClick={() => setAgentForm({ name: agent.name, socket: agent.socket })}
+                    onClick={() =>
+                      setAgentForm({ mode: "edit", name: agent.name, socket: agent.socket })
+                    }
                     disabled={busy}
                   >
                     <Pencil size={15} />
@@ -256,13 +306,18 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
                   })}
                 </span>
               </div>
-              {agent.error && <p className="agent-error-text">{agent.error}</p>}
+              {agent.error && <p className="agent-error-text">{t(`agentError_${agent.error}`)}</p>}
               <div className="agent-identities-heading">
-                <strong>{t("availableIdentities", { count: agent.identityCount ?? 0 })}</strong>
+                <strong>
+                  {t("availableIdentities", {
+                    count: agent.availableCount ?? 0,
+                    total: agent.announcedCount ?? 0,
+                  })}
+                </strong>
                 {agent.identities.length > 0 && (
                   <button
                     className="button button-primary button-small"
-                    onClick={() => void importAllIdentities(agent)}
+                    onClick={() => setImportForm({ agent, scopes: "" })}
                     disabled={busy}
                   >
                     <Plus size={13} />
@@ -298,6 +353,8 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
                     </div>
                   ))}
                 </div>
+              ) : agent.status === "available" && agent.announcedCount === 0 ? (
+                <p className="field-empty">{t("noAnnouncedIdentities")}</p>
               ) : agent.status === "available" ? (
                 <p className="field-empty">{t("noAvailableIdentities")}</p>
               ) : null}
@@ -322,7 +379,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
           >
             <header>
               <h2 id="agent-form-title">
-                {agentForm.name ? t("editAgentTitle") : t("addAgentTitle")}
+                {agentForm.mode === "edit" ? t("editAgentTitle") : t("addAgentTitle")}
               </h2>
               <button
                 className="icon-button"
@@ -341,7 +398,7 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
                   maxLength={64}
                   pattern="[A-Za-z0-9._-]+"
                   value={agentForm.name}
-                  disabled={Boolean(agentForm.name)}
+                  disabled={agentForm.mode === "edit"}
                   onChange={(event) => setAgentForm({ ...agentForm, name: event.target.value })}
                 />
               </label>
@@ -467,6 +524,131 @@ export default function AgentsPage({ onCatalogChanged }: { onCatalogChanged: () 
                 </button>
               </div>
             </form>
+          </dialog>
+        </div>
+      )}
+
+      {importForm && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setImportForm(null);
+              setImportPreview(null);
+            }
+          }}
+        >
+          <dialog
+            open
+            className="settings-modal management-modal"
+            aria-modal="true"
+            aria-labelledby="import-preview-title"
+          >
+            <header>
+              <h2 id="import-preview-title">{t("importPreviewTitle")}</h2>
+              <button
+                className="icon-button"
+                onClick={() => {
+                  setImportForm(null);
+                  setImportPreview(null);
+                }}
+                aria-label={t("close")}
+              >
+                <X size={17} />
+              </button>
+            </header>
+            <div className="import-preview-content">
+              <p className="form-context">
+                {t("importPreviewDescription", { agent: importForm.agent.name })}
+              </p>
+              {!importPreview ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void prepareImport();
+                  }}
+                >
+                  <label className="preference-field">
+                    <span>{t("scopesInput")}</span>
+                    <input
+                      value={importForm.scopes}
+                      placeholder="work/prod, company"
+                      onChange={(event) =>
+                        setImportForm({ ...importForm, scopes: event.target.value })
+                      }
+                    />
+                  </label>
+                  {error && (
+                    <p className="management-error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  <div className="form-actions">
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={() => setImportForm(null)}
+                    >
+                      {t("cancel")}
+                    </button>
+                    <button className="button button-primary" type="submit" disabled={busy}>
+                      <Check size={15} />
+                      {busy ? t("loading") : t("reviewImport")}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <p className="form-context">
+                    {t("importPreviewCount", { count: importPreview.additions.length })}
+                  </p>
+                  {importPreview.alreadyConfiguredCount > 0 && (
+                    <p className="form-context">
+                      {t("importAlreadyConfigured", {
+                        count: importPreview.alreadyConfiguredCount,
+                      })}
+                    </p>
+                  )}
+                  {importPreview.additions.length > 0 ? (
+                    <ul className="import-preview-list">
+                      {importPreview.additions.map((identity) => (
+                        <li key={identity.fingerprint}>
+                          <strong>{identity.alias}</strong>
+                          <code>{identity.fingerprint}</code>
+                          {identity.comment && <span>{identity.comment}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="field-empty">{t("nothingToImport")}</p>
+                  )}
+                  {error && (
+                    <p className="management-error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  <div className="form-actions">
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={() => setImportPreview(null)}
+                    >
+                      {t("back")}
+                    </button>
+                    <button
+                      className="button button-primary"
+                      type="button"
+                      onClick={() => void confirmImport()}
+                      disabled={busy || importPreview.additions.length === 0}
+                    >
+                      <Check size={15} />
+                      {busy ? t("saving") : t("confirmImport")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </dialog>
         </div>
       )}

@@ -5,9 +5,11 @@ import { getIdentitySnapshot, updateIdentityMetadata } from "../../api/managemen
 import type { IdentitySnapshotDto, ManagementError } from "../../types/management";
 
 function errorMessage(error: unknown): string {
-  return typeof error === "object" && error !== null && "message" in error
-    ? String(error.message)
-    : String(error);
+  if (error instanceof Error && error.message === "invalid-tag-format") return "invalid-tag-format";
+  if (typeof error === "object" && error !== null && "kind" in error) {
+    return String(error.kind);
+  }
+  return "internal-error";
 }
 
 function managementError(error: unknown): ManagementError | null {
@@ -66,7 +68,12 @@ export default function IdentityMetadataDialog({
         });
       })
       .catch((cause: unknown) => {
-        if (active) setError(errorMessage(cause));
+        if (active)
+          setError(
+            t(`managementError_${errorMessage(cause)}`, {
+              defaultValue: t("managementError_generic"),
+            }),
+          );
       })
       .finally(() => {
         if (active) setBusy(false);
@@ -74,7 +81,7 @@ export default function IdentityMetadataDialog({
     return () => {
       active = false;
     };
-  }, [alias]);
+  }, [alias, t]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,7 +97,7 @@ export default function IdentityMetadataDialog({
           .map((line) => {
             const separator = line.indexOf("=");
             if (separator < 1 || separator === line.length - 1) {
-              throw new Error(t("invalidTagFormat"));
+              throw new Error("invalid-tag-format");
             }
             return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
           }),
@@ -108,7 +115,12 @@ export default function IdentityMetadataDialog({
       onSaved();
       onClose();
     } catch (cause) {
-      setError(errorMessage(cause));
+      const code = errorMessage(cause);
+      setError(
+        code === "invalid-tag-format"
+          ? t("invalidTagFormat")
+          : t(`managementError_${code}`, { defaultValue: t("managementError_generic") }),
+      );
       const value = managementError(cause);
       if (value?.kind === "conflict" && value.current) setConflict(value.current);
     } finally {

@@ -1436,6 +1436,35 @@ kbd {
   overflow-wrap: anywhere;
   color: var(--color-text);
 }
+.import-preview-content {
+  display: grid;
+  gap: 14px;
+}
+.import-preview-list {
+  display: grid;
+  max-height: 280px;
+  gap: 8px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.import-preview-list li {
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.import-preview-list strong {
+  color: var(--color-text);
+}
+.import-preview-list code {
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}
 .form-actions {
   justify-content: flex-end;
   gap: 9px;
