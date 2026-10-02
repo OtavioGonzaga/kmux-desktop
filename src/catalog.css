@@ -296,6 +296,73 @@ h1 {
   gap: 16px;
   margin-bottom: 16px;
 }
+
+.scope-browser {
+  margin: 0 0 22px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+.scope-browser h2 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.scope-tree {
+  display: grid;
+  gap: 3px;
+}
+.scope-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.scope-tree-toggle,
+.scope-tree-spacer {
+  display: inline-grid;
+  width: 28px;
+  height: 30px;
+  place-items: center;
+  flex: 0 0 28px;
+}
+.scope-tree-toggle {
+  padding: 0;
+  color: var(--color-muted);
+  background: transparent;
+  border: 0;
+}
+.scope-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 5px 9px;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  text-align: left;
+  flex: 1;
+}
+.scope-tree-item.selected {
+  background: var(--color-border);
+  color: var(--color-accent);
+}
+.scope-tree-item span:nth-child(2) {
+  flex: 1;
+}
+.scope-tree-count {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.scope-tree-children {
+  margin-left: 16px;
+}
+.scope-all {
+  margin-bottom: 4px;
+}
 .search-box {
   display: flex;
   width: min(610px, 100%);
