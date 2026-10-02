@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the transactional import plan.
 - Show the exact scopes in the bulk-import review and preserve structured
   identity references in agent-in-use errors for localized display.
+- Add a hierarchical scope browser with descendant-aware identity filtering.
 - Add the MIT license and release/versioning guidance.
 
 ### Changed

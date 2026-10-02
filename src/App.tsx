@@ -22,11 +22,13 @@ import { removeIdentity } from "./lib/api/management";
 import AgentsPage from "./lib/features/management/AgentsPage";
 import IdentityMetadataDialog from "./lib/features/management/IdentityMetadataDialog";
 import { filterIdentities } from "./lib/features/catalog/filter";
+import ScopeTree from "./lib/features/scopes/ScopeTree";
+import { buildScopeTree, identityMatchesScope } from "./lib/features/scopes/tree";
 import type { CatalogError, CatalogResponse, IdentityDto } from "./lib/types/catalog";
 import { supportedLanguages, type AppLanguage } from "./i18n/config";
 
 type ThemePreference = "system" | "light" | "dark";
-type ActiveView = "identities" | "agents";
+type ActiveView = "identities" | "scopes" | "agents";
 const languageNames: Record<AppLanguage, string> = {
   "pt-BR": "language_pt",
   "en-US": "language_en",
@@ -53,16 +55,20 @@ export default function App() {
   const [selectedAlias, setSelectedAlias] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("identities");
+  const [selectedScope, setSelectedScope] = useState<string | null>(null);
   const [agentsRefreshKey, setAgentsRefreshKey] = useState(0);
   const [identityEditor, setIdentityEditor] = useState<string | null>(null);
   const [identityBusy, setIdentityBusy] = useState(false);
   const [identityError, setIdentityError] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [theme, setTheme] = useState<ThemePreference>(getTheme);
-  const filtered = useMemo(
-    () => filterIdentities(catalog?.identities ?? [], search),
-    [catalog, search],
-  );
+  const scopeTree = useMemo(() => buildScopeTree(catalog?.identities ?? []), [catalog]);
+  const filtered = useMemo(() => {
+    const result = filterIdentities(catalog?.identities ?? [], search);
+    return activeView === "scopes" && selectedScope
+      ? result.filter((identity) => identityMatchesScope(identity, selectedScope))
+      : result;
+  }, [activeView, catalog, search, selectedScope]);
   const selected =
     filtered.find((identity) => identity.alias === selectedAlias) ?? filtered[0] ?? null;
   const localizedError = error
@@ -206,10 +212,14 @@ export default function App() {
             <span>{t("identities")}</span>
             {catalog && <span className="nav-count">{catalog.identities.length}</span>}
           </button>
-          <button className="nav-item" disabled title={t("comingSoon")}>
+          <button
+            className={`nav-item${activeView === "scopes" ? " active" : ""}`}
+            onClick={() => setActiveView("scopes")}
+            aria-current={activeView === "scopes" ? "page" : undefined}
+          >
             <Layers3 size={18} />
             <span>{t("scopes")}</span>
-            <span className="soon">{t("comingSoon")}</span>
+            {catalog && <span className="nav-count">{scopeTree.length}</span>}
           </button>
           <button
             className={`nav-item${activeView === "agents" ? " active" : ""}`}
@@ -238,18 +248,18 @@ export default function App() {
           <div className="breadcrumb">
             <span>{t("breadcrumb")}</span>
             <ChevronRight size={14} />
-            <strong>{activeView === "identities" ? t("identities") : t("agents")}</strong>
+            <strong>{t(activeView)}</strong>
           </div>
           <div className="top-actions">
             <button
               className="icon-button"
               aria-label={t("refresh")}
               onClick={() =>
-                activeView === "identities"
+                activeView !== "agents"
                   ? void refreshCatalog()
                   : setAgentsRefreshKey((key) => key + 1)
               }
-              disabled={activeView === "identities" && loading}
+              disabled={activeView !== "agents" && loading}
             >
               <RefreshCw size={17} className={loading ? "spin" : ""} />
             </button>
@@ -264,9 +274,13 @@ export default function App() {
           <section className="content-wrap">
             <div className="page-heading">
               <div>
-                <div className="eyebrow">{t("tagline")}</div>
-                <h1>{t("heading")}</h1>
-                <p className="heading-description">{t("headingDescription")}</p>
+                <div className="eyebrow">
+                  {t(activeView === "scopes" ? "scopeTreeHeading" : "tagline")}
+                </div>
+                <h1>{t(activeView === "scopes" ? "scopes" : "heading")}</h1>
+                <p className="heading-description">
+                  {t(activeView === "scopes" ? "scopesDescription" : "headingDescription")}
+                </p>
               </div>
               <div className="heading-meta">
                 {catalog && (
@@ -304,6 +318,13 @@ export default function App() {
             ) : (
               catalog && (
                 <>
+                  {activeView === "scopes" && (
+                    <ScopeTree
+                      nodes={scopeTree}
+                      selected={selectedScope}
+                      onSelect={setSelectedScope}
+                    />
+                  )}
                   <div className="catalog-toolbar">
                     <label className="search-box">
                       <Search size={18} />
@@ -352,7 +373,11 @@ export default function App() {
                       <div className="empty-icon">
                         <Search size={23} />
                       </div>
-                      <h2>{t("noResults", { query: search })}</h2>
+                      <h2>
+                        {selectedScope
+                          ? t("scopeNoResults", { scope: selectedScope })
+                          : t("noResults", { query: search })}
+                      </h2>
                       <p>{t("noResultsHelp")}</p>
                     </section>
                   ) : (
