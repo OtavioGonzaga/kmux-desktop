@@ -23,7 +23,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
-kmux = { package = "ssh-kmux", git = "https://github.com/OtavioGonzaga/kmux", rev = "583b5d77a49da655184a158bc442dd24a055a5d3" }
+kmux = { package = "ssh-kmux", version = "0.5" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
