@@ -42,6 +42,16 @@ bun run build
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
 ```
 
+## Installation
+
+- [Debian/Ubuntu, RPM-based distributions, AppImage, and source installation](docs/installation.md)
+- [Latest GitHub Release](https://github.com/OtavioGonzaga/kmux-desktop/releases/latest)
+
+## Documentation
+
+- [Installation](docs/installation.md)
+- [Releasing](docs/releasing.md)
+
 ## License and releases
 
 This project is licensed under the MIT License; see [`LICENSE`](LICENSE).
@@ -49,7 +59,6 @@ Notable changes are tracked in [`CHANGELOG.md`](CHANGELOG.md) using Keep a
 Changelog. Application versions follow Semantic Versioning and are kept in sync
 across the JavaScript package, Rust crate, and Tauri bundle configuration.
 
-The Rust backend uses the public `ssh-kmux` API pinned to a specific Git commit
-in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`. The frontend receives
-public catalog and agent-inspection DTOs only. Private keys and raw key blobs
-are never sent to the frontend.
+The Rust backend uses the public `ssh-kmux` 0.5 API from crates.io. The frontend
+receives public catalog and agent-inspection DTOs only. Private keys and raw key
+blobs are never sent to the frontend.

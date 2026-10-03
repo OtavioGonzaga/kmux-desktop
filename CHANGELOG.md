@@ -31,12 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   identity references in agent-in-use errors for localized display.
 - Add a hierarchical scope browser with descendant-aware identity filtering.
 - Add the MIT license and release/versioning guidance.
+- Add automated Linux release packaging for Debian, RPM-based distributions,
+  and AppImage.
+- Add release recovery, checksums, and installation and release documentation.
 
 ### Changed
 
 - Remove unused legacy static assets from the previous frontend scaffold.
-- Pin `ssh-kmux` to the current kmux Git revision to use its transactional
-  management and versioned configuration APIs.
+- Use the published `ssh-kmux` 0.5 crate instead of a Git dependency.
 - Use neutral dark-theme styles for standard buttons and align identity-detail
   actions with the other detail content.
 - Separate agent creation and editing modes, localize management errors, retain
