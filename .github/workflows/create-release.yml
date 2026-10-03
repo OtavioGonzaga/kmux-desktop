@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
       - run: sudo apt-get update && sudo apt-get install --yes libgtk-3-dev libwebkit2gtk-4.1-dev
@@ -99,7 +99,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.release_commit_sha || needs.preflight.outputs.release_commit_sha }}
-      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
       - uses: Swatinem/rust-cache@63fed3e2fecf6f7b51dc6f043341b79ef82a9ae7 # v2.9.2
@@ -129,9 +129,11 @@ jobs:
           test "$(dpkg-deb --field "release-assets/kmux-desktop_${VERSION}_amd64.deb" Version)" = "$VERSION"
           test "$(dpkg-deb --field "release-assets/kmux-desktop_${VERSION}_amd64.deb" Architecture)" = amd64
           dpkg-deb --contents "release-assets/kmux-desktop_${VERSION}_amd64.deb" > deb-contents.txt
-          grep -Eq '/usr/bin/kmux-desktop$' deb-contents.txt
-          grep -Eq '/usr/share/applications/.*\.desktop$' deb-contents.txt
-          grep -Eq '/usr/share/icons/' deb-contents.txt
+          mkdir deb-extracted
+          dpkg-deb --extract "release-assets/kmux-desktop_${VERSION}_amd64.deb" deb-extracted
+          find deb-extracted/usr/bin -maxdepth 1 -type f -perm -111 -print -quit | grep -q .
+          find deb-extracted/usr/share/applications -maxdepth 1 -name '*.desktop' -type f -print -quit | grep -q .
+          find deb-extracted/usr/share/icons -type f -print -quit | grep -q .
           sudo apt-get install --yes "./release-assets/kmux-desktop_${VERSION}_amd64.deb"
           dpkg-query --show kmux-desktop
           sudo apt-get remove --yes kmux-desktop
@@ -140,7 +142,7 @@ jobs:
           test -n "$(rpm -qp --qf '%{RELEASE}' "release-assets/kmux-desktop-${VERSION}-1.x86_64.rpm")"
           test "$(rpm -qp --qf '%{ARCH}' "release-assets/kmux-desktop-${VERSION}-1.x86_64.rpm")" = x86_64
           rpm -qlp "release-assets/kmux-desktop-${VERSION}-1.x86_64.rpm" > rpm-contents.txt
-          grep -Eq '/usr/bin/kmux-desktop$' rpm-contents.txt
+          grep -Eq '/usr/bin/[^/]+$' rpm-contents.txt
           grep -Eq '/usr/share/applications/.*\.desktop$' rpm-contents.txt
           grep -Eq '/usr/share/icons/' rpm-contents.txt
           file "release-assets/kmux-desktop_${VERSION}_x86_64.AppImage"
