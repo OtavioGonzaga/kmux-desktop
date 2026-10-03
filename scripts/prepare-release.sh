@@ -91,15 +91,21 @@ def replace_package_version(text, name):
     updated, count = re.subn(pattern, rf'\g<1>\g<2>{version}\g<3>', text)
     if count != 1: raise SystemExit(f"could not update {name} version in Cargo.lock")
     return updated
-package = json.loads(package_json.read_text()); package['version'] = version
-(tmp / 'package.json').write_text(json.dumps(package, indent=2) + '\n')
+def replace_json_version(path):
+    text = path.read_text()
+    if json.loads(text).get('version') is None:
+        raise SystemExit(f'could not read version from {path}')
+    updated, count = re.subn(r'("version"\s*:\s*")[^"]+("\s*[,}])', rf'\g<1>{version}\g<2>', text, count=1)
+    if count != 1:
+        raise SystemExit(f'could not update version in {path}')
+    return updated
+(tmp / 'package.json').write_text(replace_json_version(package_json))
 toml = cargo_toml.read_text()
 toml, count = re.subn(r'(?ms)(^\[package\]\n.*?^version\s*=\s*")[^"]+(".*?$)', rf'\g<1>{version}\2', toml, count=1)
 if count != 1: raise SystemExit('could not update [package].version in Cargo.toml')
 (tmp / 'Cargo.toml').write_text(toml)
 (tmp / 'Cargo.lock').write_text(replace_package_version(cargo_lock.read_text(), 'kmux-desktop'))
-tauri = json.loads(tauri_config.read_text()); tauri['version'] = version
-(tmp / 'tauri.conf.json').write_text(json.dumps(tauri, indent=2) + '\n')
+(tmp / 'tauri.conf.json').write_text(replace_json_version(tauri_config))
 text = changelog.read_text(); marker = '## [Unreleased]\n'
 (tmp / 'CHANGELOG.md').write_text(text.replace(marker, f'{marker}\n## [{version}] - {date}\n', 1))
 if bun_lock:

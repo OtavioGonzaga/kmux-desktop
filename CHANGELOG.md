@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Pass Linux bundle targets directly to the Tauri CLI during release builds.
+
 ### Added
 
 - Add a React + Vite frontend for the Tauri 2 desktop application.
