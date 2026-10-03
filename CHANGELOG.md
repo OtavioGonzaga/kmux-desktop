@@ -44,4 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate agent creation and editing modes, localize management errors, retain
   total and available identity counts, and refresh the active view from the header.
 
+### Fixed
+
+- Install the GTK and WebKitGTK development libraries before release preparation
+  validates the Rust backend.
+
 - Document Bun setup, development commands, and project checks.
