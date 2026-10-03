@@ -113,7 +113,7 @@ jobs:
         run: |
           set -euo pipefail
           bun install --frozen-lockfile
-          bun run tauri build -- --bundles deb,appimage,rpm
+          bun run tauri build --bundles deb,appimage,rpm
           bundle=src-tauri/target/release/bundle
           test "$(find "$bundle/deb" -maxdepth 1 -name '*.deb' -type f | wc -l)" = 1
           test "$(find "$bundle/appimage" -maxdepth 1 -name '*.AppImage' -type f | wc -l)" = 1
